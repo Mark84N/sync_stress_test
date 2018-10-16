@@ -107,24 +107,23 @@ static struct minor *find_minor_by_id(struct major* maj, int id)
 static void tasklet_cleanup_handler(unsigned long arg)
 {
 	struct major *maj = (struct major *)arg;
-	struct minor *ptr, *tmp;
+	struct minor *min, *tmp;
 	pr_crit("%s()\n", __func__);
 
 retry:
 	spin_lock(&maj->major_lock);
-	list_for_each_entry_safe(ptr, tmp, &maj->minors_head, list) {
-		if (ptr->is_alive == 0) {
-			if (-1 == try_to_del_timer_sync(&ptr->timer)) {
+	list_for_each_entry_safe(min, tmp, &maj->minors_head, list) {
+		if (min->is_alive == 0) {
+			if (-1 == try_to_del_timer_sync(&min->timer)) {
 				pr_crit("%s %d: timer handler for min %d is running, will allow it to finish\n", 
-							__func__, __LINE__, ptr->id);
+							__func__, __LINE__, min->id);
 				spin_unlock(&maj->major_lock);
 				goto retry;
 			}
 
-			list_del(&ptr->list);
-			del_all_leaves(ptr);
-			kfree(ptr);
-			continue;
+			list_del(&min->list);
+			del_all_leaves(min);
+			kfree(min);
 		}
 	}
 	maj->cleanup = 0;
